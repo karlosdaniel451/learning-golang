@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func main() {
+func exercise_1_7_main() {
 	for i, arg := range os.Args {
 		fmt.Println(i, "-", arg)
 	}

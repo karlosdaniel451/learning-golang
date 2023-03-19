@@ -1,6 +1,5 @@
 /*
-	Exercis e 1.1: Mo dif y the echo prog ram to als o pr int os.Args[0], the
-
+Exercis e 1.1: Mo dif y the echo prog ram to als o pr int os.Args[0], the
 name of the command that invo ked it.
 */
 package main
@@ -11,6 +10,6 @@ import (
 	"strings"
 )
 
-func main() {
+func exercise_1_1_main() {
 	fmt.Println(strings.Join(os.Args, " "))
 }
