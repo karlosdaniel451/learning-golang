@@ -51,7 +51,7 @@ func main() {
 	}
 }
 
-// Call `applyTransference` for each transference of `transferences`.
+// Call `applyTransference()` for each transference of `transferences`.
 func applyTransferences(transferences []Transference) {
 	for i := range transferences {
 		applyTransference(&transferences[i])
