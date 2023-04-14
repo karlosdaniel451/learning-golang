@@ -7,7 +7,7 @@ import (
 )
 
 type Cache[T any] struct {
-	Data map[string]*T
+	items map[string]*T  // `items` is an encapsulated field.
 }
 
 func CreateCache[T any](initialCapacity int) (*Cache[T], error) {
@@ -16,16 +16,16 @@ func CreateCache[T any](initialCapacity int) (*Cache[T], error) {
 	}
 
 	return &Cache[T]{
-		Data: make(map[string]*T, initialCapacity),
+		items: make(map[string]*T, initialCapacity),
 	}, nil
 }
 
 func (cache *Cache[T]) GetLength() int {
-	return len(cache.Data)
+	return len(cache.items)
 }
 
 func (cache *Cache[T]) Lookup(key string) (*T, bool) {
-	value, ok := cache.Data[key]
+	value, ok := cache.items[key]
 	if ok {
 		return value, true
 	}
@@ -34,7 +34,7 @@ func (cache *Cache[T]) Lookup(key string) (*T, bool) {
 }
 
 func (cache *Cache[T]) Upsert(key string, value *T) {
-	cache.Data[key] = value
+	cache.items[key] = value
 }
 
 type UserLogin struct {
