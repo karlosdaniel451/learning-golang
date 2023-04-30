@@ -18,6 +18,11 @@ func (p *Point) DistanceFromPoint(q *Point) float64 {
 	return math.Sqrt(math.Pow(p.X-q.X, 2) + math.Pow(p.Y-q.Y, 2))
 }
 
+func (p *Point) ScaleBy(factor float64) {
+	p.X *= factor
+	p.Y *= factor
+}
+
 func (p *Point) String() string {
 	return fmt.Sprintf("X: %f, Y: %f", p.X, p.Y)
 }

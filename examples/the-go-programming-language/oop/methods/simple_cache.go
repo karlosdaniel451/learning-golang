@@ -4,10 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 )
 
 type Cache[T any] struct {
-	items map[string]*T  // `items` is an encapsulated field.
+	// `items` is an encapsulated field and cannot be used from another package.
+	items map[string]*T
+
+	// It is an embedded anonymous field, thus its public fields and methods
+	// are promoted to `Cache`.
+	sync.Mutex
 }
 
 func CreateCache[T any](initialCapacity int) (*Cache[T], error) {
@@ -25,12 +31,19 @@ func (cache *Cache[T]) GetLength() int {
 }
 
 func (cache *Cache[T]) Lookup(key string) (*T, bool) {
-	value, ok := cache.items[key]
-	if ok {
-		return value, true
-	}
+	// First implementation:
+	// cache.Lock()
+	// value, ok := cache.items[key]
+	// cache.Unlock()
+	// if ok {
+	// 	return value, true
+	// }
+	// return new(T), false
 
-	return new(T), false
+	cache.Lock()
+	value, ok := cache.items[key]
+	cache.Unlock()
+	return value, ok
 }
 
 func (cache *Cache[T]) Upsert(key string, value *T) {
@@ -53,17 +66,17 @@ func main() {
 
 	firstUser := UserLogin{
 		Username: "johndoe123",
-		Email: "john@gmail.com",
+		Email:    "john@gmail.com",
 		Password: "fakepassword",
 	}
 	secondUser := UserLogin{
 		Username: "janedoe123",
-		Email: "janedoe@gmail.com",
+		Email:    "janedoe@gmail.com",
 		Password: "fakepassword",
 	}
 	thirdUser := UserLogin{
 		Username: "smith321",
-		Email: "smith@gmail.com",
+		Email:    "smith@gmail.com",
 		Password: "fakepassword",
 	}
 
@@ -76,12 +89,36 @@ func main() {
 	userLoginCache.Upsert(thirdUser.Username, &thirdUser)
 	fmt.Printf("Current cache length: %d\n", userLoginCache.GetLength())
 
-	user, _ := userLoginCache.Lookup(firstUser.Username)
-	fmt.Printf("%#v\n", *user)
+	usernameToLookup := firstUser.Username
+	user, ok := userLoginCache.Lookup(usernameToLookup)
+	if !ok {
+		fmt.Printf("Not found user with username \"%s\".\n", usernameToLookup)
+	} else {
+		fmt.Printf("%#v\n", *user)
+	}
 
-	user, _ = userLoginCache.Lookup(secondUser.Username)
-	fmt.Printf("%#v\n", *user)
+	usernameToLookup = secondUser.Username
+	user, ok = userLoginCache.Lookup(usernameToLookup)
+	if !ok {
+		fmt.Printf("Not found user with username \"%s\".\n", usernameToLookup)
+	} else {
+		fmt.Printf("%#v\n", *user)
+	}
 
-	user, _ = userLoginCache.Lookup(thirdUser.Username)
-	fmt.Printf("%#v\n", *user)
+	usernameToLookup = thirdUser.Username
+	user, ok = userLoginCache.Lookup(usernameToLookup)
+	if !ok {
+		fmt.Printf("Not found user with username \"%s\".\n", usernameToLookup)
+	} else {
+		fmt.Printf("%#v\n", *user)
+	}
+
+	usernameToLookup = "any_username"
+	user, ok = userLoginCache.Lookup(usernameToLookup)
+	if !ok {
+		fmt.Printf("Not found user with username \"%s\".\n", usernameToLookup)
+	} else {
+		fmt.Printf("%#v\n", *user)
+	}
+
 }
