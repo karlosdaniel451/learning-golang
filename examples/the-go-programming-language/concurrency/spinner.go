@@ -6,18 +6,36 @@ import (
 )
 
 func main() {
-	go spinner(100 * time.Millisecond)
 	n := 45
-	fmt.Printf("fib(%d) = %d\n", n, fibonacci(n))
+
+	cancelSignal := make(chan struct{})
+	go spinner(100*time.Millisecond, cancelSignal)
+
+	fibonacci := fibonacci(n)
+	cancelSignal <- struct{}{}
+
+	fmt.Printf("fib(%d) = %d\n", n, fibonacci)
 }
 
-func spinner(delay time.Duration) {
+func spinner(delay time.Duration, cancelSignal <-chan struct{}) {
 	for {
-		for _, r := range `-\|/` {
-			fmt.Printf("\r%c", r)
-			time.Sleep(delay)
+		select {
+		case <-cancelSignal:
+			eraseOutputLine()
+			return
+		default:
+			for _, r := range `-\|/` {
+				fmt.Printf("\r%c", r)
+				time.Sleep(delay)
+			}
 		}
 	}
+}
+
+func eraseOutputLine() {
+	// Thanks ChatGPT for making me find this mysterious string sequence to
+	// erase the current printed output:
+	fmt.Print("\033[2K\r")
 }
 
 func fibonacci(n int) int {

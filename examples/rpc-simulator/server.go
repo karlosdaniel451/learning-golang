@@ -15,10 +15,3 @@ func serve(RPCQueue chan *RPC, exitSignal chan struct{}) {
 
 	<-exitSignal
 }
-
-func main() {
-	rpcQueue := make(chan *RPC, maxWorkers * 100)
-	exitSignal := make(chan struct{})
-
-	serve(rpcQueue, exitSignal)
-}
