@@ -1,9 +1,6 @@
 package cpuscheduling
 
 import (
-	"log"
-	"time"
-
 	"github.com/ugurcsen/gods-generic/queues/linkedlistqueue"
 )
 
@@ -18,7 +15,6 @@ func NewTaskManagerFirstComeFirstServed() *TaskManagerFirstComeFirstServed {
 		nextTaskID:    1,
 		runnableTasks: *linkedlistqueue.New[*Task](),
 		cpu:           newCPU(),
-		// scheduler:     RoundRobinScheduler{},
 	}
 }
 
@@ -53,42 +49,15 @@ func (taskManager *TaskManagerFirstComeFirstServed) CreateTask(
 	return task
 }
 
+func (taskManager *TaskManagerFirstComeFirstServed) GetCpu() *CPU {
+	return taskManager.cpu
+}
+
 func (taskManager *TaskManagerFirstComeFirstServed) Schedule() {
-	for {
-		nextTaskToBeRun, ok := taskManager.pickNextTask()
-		if !ok {
-			break
-		}
-		// FirstComeFirstServed scheduling policy is non-preemptive, so it
-		// can only select another process/thread/task to run when there is
-		// no one currently running in the CPU
-		for {
-			isCpuIdle := taskManager.cpu.isIdle()
-			if isCpuIdle {
-				break
-			}
-			time.Sleep(time.Second * 1)
-			// log.Println("cpu is still not idle")
-		}
-		previouslyExecutingTask := taskManager.cpu.currentlyExecutingTask
-		if previouslyExecutingTask != nil {
-			previouslyExecutingTask.State = Terminated
-		}
-		nextTaskToBeRun.State = Running
-		taskManager.cpu.runTask(nextTaskToBeRun, nextTaskToBeRun.CpuBurst)
-	}
-	// Wait for the last task finish
-	for {
-		isCpuIdle := taskManager.cpu.isIdle()
-		if isCpuIdle {
-			break
-		}
-		time.Sleep(time.Second * 1)
-		// log.Println("cpu is still not idle")
-	}
+	schedule(taskManager)
 }
 
 func (taskManager *TaskManagerFirstComeFirstServed) pickNextTask() (task *Task, ok bool) {
-	log.Printf("number of runnable tasks: %d", taskManager.runnableTasks.Size())
+	// log.Printf("number of runnable tasks: %d", taskManager.runnableTasks.Size())
 	return taskManager.runnableTasks.Dequeue()
 }
