@@ -2,129 +2,56 @@ package main
 
 import (
 	"fmt"
-	"sync"
+	"math/rand"
 	"time"
-
-	"github.com/ugurcsen/gods-generic/queues/arrayqueue"
 )
 
-type Ticket struct {
-	number int
+type Item struct {
+	value int
 }
 
-func NewTicket() *Ticket {
-	return &Ticket{}
-}
-
-type TicketOffice struct {
-	tickets                     arrayqueue.Queue[Ticket]
-	ticketsMutex                sync.Mutex
-	maxNumberOfTickets          int
-	nextTicketNumberToBeCreated int
-	cond                        sync.Cond
-}
-
-func newTicketOffice(maxNumberOfTickets int) *TicketOffice {
-	return &TicketOffice{
-		tickets:                     *arrayqueue.New[Ticket](),
-		ticketsMutex:                sync.Mutex{},
-		maxNumberOfTickets:          maxNumberOfTickets,
-		nextTicketNumberToBeCreated: 1,
-		cond:                        *sync.NewCond(&sync.Mutex{}),
+func produce(itemStream chan<- *Item, delay time.Duration) {
+	for {
+		time.Sleep(delay)
+		newItem := Item{
+			value: rand.Intn(11),
+		}
+		itemStream <- &newItem
+		fmt.Printf(
+			"item value produced: %d - buffer size: %d\n",
+			newItem.value, len(itemStream),
+		)
 	}
 }
 
-func (ticketOffice *TicketOffice) numberOfTickets() int {
-	ticketOffice.ticketsMutex.Lock()
-	defer ticketOffice.ticketsMutex.Unlock()
-
-	return ticketOffice.tickets.Size()
-}
-
-func (ticketOffice *TicketOffice) popTicket() (ticket *Ticket, ok bool) {
-	ticketOffice.cond.L.Lock()
-	defer ticketOffice.cond.L.Unlock()
-
-	for ticketOffice.tickets.Size() == 0 {
-		fmt.Println("Empty tickets queue, waiting for one item be produced...")
-		ticketOffice.cond.Wait()
-		fmt.Println("Wait for one item to be produced finished...")
+func consume(itemStream <-chan *Item, delay time.Duration) {
+	for {
+		time.Sleep(delay)
+		readItem := <-itemStream
+		fmt.Printf(
+			"item value consumed: %d - buffer size: %d\n",
+			readItem.value, len(itemStream),
+		)
 	}
-
-	dequeuedTicket, wasDequeuingOk := ticketOffice.tickets.Dequeue()
-	ticketOffice.cond.Signal()
-	return &dequeuedTicket, wasDequeuingOk
-}
-
-func (ticketOffice *TicketOffice) addTicket() (newCreatedTicket *Ticket) {
-	ticketOffice.cond.L.Lock()
-	defer ticketOffice.cond.L.Unlock()
-
-	for ticketOffice.tickets.Size() == ticketOffice.maxNumberOfTickets {
-		fmt.Println("Full tickets queue, waiting for one item be consumed...")
-		ticketOffice.cond.Wait()
-		fmt.Println("Wait for one item to be consumed finished...")
-	}
-
-	newTicket := *NewTicket()
-	newTicket.number = ticketOffice.nextTicketNumberToBeCreated
-	ticketOffice.nextTicketNumberToBeCreated++
-
-	ticketOffice.tickets.Enqueue(newTicket)
-	ticketOffice.cond.Signal()
-	return &newTicket
 }
 
 func main() {
-	const numberOfProducers int = 30
-	const numberOfConsumers int = 30
-	const maxNumberOfTickets int = 20
-
-	var wg sync.WaitGroup
-
-	ticketOffice := *newTicketOffice(maxNumberOfTickets)
-
-	fmt.Printf("Max number of tickets: %d\n\n", maxNumberOfTickets)
+	const (
+		numberOfProducers int           = 3
+		numberOfConsumers int           = 3
+		bufferSize        int           = 10
+		producersDelay    time.Duration = time.Second * 1
+		consumersDelay    time.Duration = time.Second * 2
+	)
+	itemStream := make(chan *Item, bufferSize)
 
 	for i := 0; i < numberOfProducers; i++ {
-		// go wg.Add(1)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			produceTickets(&ticketOffice, time.Millisecond*500)
-		}()
+		go produce(itemStream, producersDelay)
 	}
 
 	for i := 0; i < numberOfConsumers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			consumeTickets(&ticketOffice, time.Millisecond*200)
-		}()
+		go consume(itemStream, consumersDelay)
 	}
 
-	wg.Wait()
-
-	fmt.Printf("Final number of tickets: %d\n", ticketOffice.tickets.Size())
-}
-
-func produceTickets(ticketOffice *TicketOffice, delay time.Duration) {
-	time.Sleep(delay)
-	ticketProduced := ticketOffice.addTicket()
-	fmt.Printf("Ticket produced with number %d\n", ticketProduced.number)
-
-	// The following function call may generate race conditions
-	// fmt.Printf("Current number of tickets: %d\n\n", ticketOffice.numberOfTickets())
-}
-
-func consumeTickets(ticketOffice *TicketOffice, delay time.Duration) {
-	time.Sleep(delay)
-	ticketConsumed, ok := ticketOffice.popTicket()
-	if !ok {
-		panic("")
-	}
-	fmt.Printf("Ticket consumed with number %d\n", ticketConsumed.number)
-
-	// The following function call may generate race conditions
-	// fmt.Printf("Current number of tickets: %d\n\n", ticketOffice.numberOfTickets())
+	time.Sleep(time.Hour)
 }
