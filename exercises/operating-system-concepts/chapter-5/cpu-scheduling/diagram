@@ -1,0 +1,21 @@
+classDiagram
+    class TaskManager {
+        <<Interface>>
+	    + GetRunnableTasks(): Task
+	    + GetNextTaskID(): int
+	    + CreateTask(name: string, priority: int, cpuBurst int): *Task
+	    + Schedule()
+	    - pickNextTask() (task: *Task, ok: bool)
+    }
+
+    class TaskManagerFirstComeFirstServed {
+        - static newTaskManagerFirstComeFirstServed() *TaskManagerFirstComeFirstServed
+    }
+
+    class TaskManagerShortestJobFirst {
+        - static newTaskManagerTaskManagerShortestJobFirst() *TaskManagerShortestJobFirst
+        - static taskPriorityComparator(task1: *Task, task2: *Task) int
+    }
+
+    TaskManagerFirstComeFirstServed <|-- TaskManager
+    TaskManagerShortestJobFirst <|-- TaskManager

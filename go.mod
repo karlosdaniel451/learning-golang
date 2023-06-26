@@ -1,3 +1,3 @@
 module github.com/karlosdaniel451/learning-golang
 
-go 1.20
+go 1.21
