@@ -58,6 +58,7 @@ func setInterval(fn func(), delay time.Duration) (cancelChannel chan struct{}) {
 			default:
 				break
 			}
+
 			select {
 			case <-ticker.C:
 				fn()
